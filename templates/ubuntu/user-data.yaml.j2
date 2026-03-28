@@ -1,0 +1,71 @@
+#cloud-config
+autoinstall:
+  version: 1
+  locale: {{ config.locale }}
+  keyboard:
+    layout: {{ config.keyboard_layout }}
+  identity:
+    hostname: {{ config.hostname }}
+    username: {{ config.admin.username }}
+    password: {{ config.admin.password_hash }}
+    realname: {{ config.admin.real_name }}
+  ssh:
+    install-server: true
+    allow-pw: false
+  network:
+    version: 2
+    ethernets:
+{% if config.network.type == "dhcp" %}
+      id0:
+        match:
+          name: {{ config.network.interface }}
+        dhcp4: true
+{% else %}
+      id0:
+        match:
+          name: {{ config.network.interface }}
+        dhcp4: false
+        addresses:
+          - {{ config.network.address }}
+        routes:
+          - to: default
+            via: {{ config.network.gateway }}
+{% if config.network.dns %}
+        nameservers:
+          addresses:
+{% for dns in config.network.dns %}
+            - {{ dns }}
+{% endfor %}
+{% endif %}
+{% endif %}
+  storage:
+    layout:
+      name: {{ config.storage.layout }}
+      match:
+        size: {{ config.storage.match }}
+  packages:
+    - python3
+    - python3-apt
+    - openssh-server
+{% for pkg in config.packages %}
+    - {{ pkg }}
+{% endfor %}
+  user-data:
+    timezone: {{ config.timezone }}
+    users:
+      - name: ansible
+        gecos: Ansible Automation User
+        groups: sudo
+        shell: /bin/bash
+        lock_passwd: true
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        ssh_authorized_keys:
+          - {{ ssh_key }}
+  late-commands:
+    - echo 'ansible ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/ansible
+    - chmod 440 /target/etc/sudoers.d/ansible
+    - touch /target/var/log/autoinstall-success
+{% for cmd in config.extra_late_commands %}
+    - {{ cmd }}
+{% endfor %}
+  shutdown: reboot
