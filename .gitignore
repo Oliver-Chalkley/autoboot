@@ -59,3 +59,5 @@ keys/id_ed25519
 
 # Build artifacts
 build/
+
+tags
