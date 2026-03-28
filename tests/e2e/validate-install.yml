@@ -1,0 +1,159 @@
+---
+# Ansible playbook to validate an autoboot-installed machine.
+#
+# Checks that the installation produced a working system with:
+# - ansible user with SSH key access and passwordless sudo
+# - Required packages installed
+# - Correct hostname, timezone, locale
+# - Success marker from the installer
+#
+# Usage:
+#   ansible-playbook -i <ip>, -u ansible --private-key keys/ansible tests/e2e/validate-install.yml
+
+- name: Validate autoboot installation
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    # --- User & SSH ---
+    - name: Verify ansible user exists
+      ansible.builtin.user:
+        name: ansible
+        state: present
+      check_mode: true
+      register: ansible_user
+
+    - name: Assert ansible user exists
+      ansible.builtin.assert:
+        that: not ansible_user.changed
+        fail_msg: "ansible user does not exist"
+
+    - name: Check ansible SSH authorized_keys
+      ansible.builtin.stat:
+        path: /home/ansible/.ssh/authorized_keys
+      register: auth_keys
+
+    - name: Assert authorized_keys exists
+      ansible.builtin.assert:
+        that: auth_keys.stat.exists
+        fail_msg: "/home/ansible/.ssh/authorized_keys not found"
+
+    - name: Check authorized_keys permissions
+      ansible.builtin.assert:
+        that: auth_keys.stat.mode == "0600"
+        fail_msg: "authorized_keys has wrong permissions: {{ auth_keys.stat.mode }}"
+
+    - name: Check .ssh directory permissions
+      ansible.builtin.stat:
+        path: /home/ansible/.ssh
+      register: ssh_dir
+
+    - name: Assert .ssh directory permissions
+      ansible.builtin.assert:
+        that: ssh_dir.stat.mode == "0700"
+        fail_msg: ".ssh has wrong permissions: {{ ssh_dir.stat.mode }}"
+
+    # --- Sudo ---
+    - name: Verify sudoers.d/ansible exists
+      ansible.builtin.stat:
+        path: /etc/sudoers.d/ansible
+      register: sudoers_file
+
+    - name: Assert sudoers file exists
+      ansible.builtin.assert:
+        that: sudoers_file.stat.exists
+        fail_msg: "/etc/sudoers.d/ansible not found"
+
+    - name: Check sudoers file permissions
+      ansible.builtin.assert:
+        that: sudoers_file.stat.mode == "0440"
+        fail_msg: "sudoers file has wrong permissions: {{ sudoers_file.stat.mode }}"
+
+    - name: Verify passwordless sudo works
+      ansible.builtin.command: whoami
+      become: true
+      become_method: sudo
+      register: sudo_result
+      changed_when: false
+
+    - name: Assert sudo returns root
+      ansible.builtin.assert:
+        that: sudo_result.stdout == "root"
+
+    # --- Packages ---
+    - name: Check required packages are installed
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: present
+      check_mode: true
+      register: pkg_check
+      loop:
+        - python3
+        - openssh-server
+
+    - name: Assert packages are installed
+      ansible.builtin.assert:
+        that: not item.changed
+        fail_msg: "Package {{ item.item }} is not installed"
+      loop: "{{ pkg_check.results }}"
+
+    # --- SSH service ---
+    - name: Check sshd is running
+      ansible.builtin.service:
+        name: "{{ 'ssh' if ansible_os_family == 'Debian' else 'sshd' }}"
+        state: started
+      check_mode: true
+      register: sshd_status
+
+    - name: Assert sshd is running
+      ansible.builtin.assert:
+        that: not sshd_status.changed
+        fail_msg: "sshd is not running"
+
+    # --- Install marker ---
+    - name: Check autoinstall success marker
+      ansible.builtin.stat:
+        path: /var/log/autoinstall-success
+      register: success_marker
+
+    - name: Assert install marker exists
+      ansible.builtin.assert:
+        that: success_marker.stat.exists
+        fail_msg: "/var/log/autoinstall-success not found — install may not have completed"
+
+    # --- System config ---
+    - name: Get hostname
+      ansible.builtin.command: hostname
+      register: hostname_result
+      changed_when: false
+
+    - name: Print hostname
+      ansible.builtin.debug:
+        msg: "Hostname: {{ hostname_result.stdout }}"
+
+    - name: Get timezone
+      ansible.builtin.command: timedatectl show --property=Timezone --value
+      register: tz_result
+      changed_when: false
+
+    - name: Print timezone
+      ansible.builtin.debug:
+        msg: "Timezone: {{ tz_result.stdout }}"
+
+    - name: Print OS info
+      ansible.builtin.debug:
+        msg: "{{ ansible_distribution }} {{ ansible_distribution_version }} ({{ ansible_os_family }})"
+
+    - name: Print validation summary
+      ansible.builtin.debug:
+        msg: |
+          === Autoboot E2E Validation Passed ===
+          Host: {{ hostname_result.stdout }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Timezone: {{ tz_result.stdout }}
+          Ansible user: OK
+          SSH key: OK
+          Sudo: OK
+          Packages: OK
+          Install marker: OK

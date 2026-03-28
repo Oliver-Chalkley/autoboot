@@ -49,6 +49,7 @@ isos/built/*.iso
 *.qcow2
 packer_cache/
 output-*/
+tests/e2e/output/
 crash.log
 
 # Keys - private keys only (public keys are safe to commit)
