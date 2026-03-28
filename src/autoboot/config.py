@@ -4,8 +4,9 @@ from pathlib import Path
 
 import yaml
 
-from autoboot.distros import get_handler, list_distros
+from autoboot.distros import get_handler
 from autoboot.models import AdminConfig, MachineConfig, NetworkConfig, StorageConfig
+from autoboot.paths import get_configs_dir as _get_configs_dir
 
 
 def load_config(config_path: Path) -> MachineConfig:
@@ -99,9 +100,7 @@ def create_config(
     configs_dir: Path | None = None,
 ) -> Path:
     """Create a new machine config with defaults. Returns path to config file."""
-    from autoboot.paths import get_configs_dir
-
-    configs_dir = configs_dir or get_configs_dir()
+    configs_dir = configs_dir or _get_configs_dir()
 
     if not distro_version:
         handler = get_handler(distro)

@@ -1,6 +1,7 @@
 """Tests for autoboot.iso module."""
 
 import hashlib
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -114,10 +115,11 @@ class TestDownloadIso:
         iso = tmp_path / "ubuntu-24.04.3-live-server-amd64.iso"
         iso.write_bytes(b"old")
 
-        import subprocess
-
         with patch("autoboot.iso._download_file") as mock_dl, \
-             patch("autoboot.iso._fetch_url_text", side_effect=subprocess.CalledProcessError(1, "curl")):
+             patch(
+                 "autoboot.iso._fetch_url_text",
+                 side_effect=subprocess.CalledProcessError(1, "curl"),
+             ):
             mock_dl.side_effect = lambda url, dest: dest.write_bytes(b"new")
             download_iso(config, tmp_path, force=True)
             assert mock_dl.called

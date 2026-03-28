@@ -1,0 +1,42 @@
+# Example machine config for autoboot.
+# Copy this directory and customize for your machine:
+#   cp -r configs/example configs/my-server
+#   nano configs/my-server/config.yaml
+
+machine_name: example
+distro: ubuntu
+distro_version: "24.04.3"
+
+# Hostname defaults to machine_name if not set
+# hostname: example
+
+locale: en_US.UTF-8
+keyboard_layout: us
+timezone: UTC
+
+network:
+  type: dhcp
+  # For static IP, use:
+  # type: static
+  # interface: eth0
+  # address: 192.168.1.100/24
+  # gateway: 192.168.1.1
+  # dns:
+  #   - 1.1.1.1
+  #   - 8.8.8.8
+
+storage:
+  layout: lvm
+  match: largest
+
+admin:
+  username: admin
+  # Generate with: mkpasswd -m sha-512
+  password_hash: "$6$rounds=4096$replace_me$replace_this_with_a_real_hash"
+  real_name: Administrator
+
+# Extra packages beyond python3, openssh-server
+packages: []
+
+# Extra commands to run at the end of installation
+extra_late_commands: []

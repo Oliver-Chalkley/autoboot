@@ -151,7 +151,9 @@ class TestDownloadCommand:
         assert mock_download.called
 
     @patch("autoboot.cli.download_iso")
-    def test_download_with_force(self, mock_download, runner: CliRunner, project_root: Path):
+    def test_download_with_force(
+        self, mock_download, runner: CliRunner, project_root: Path,
+    ):
         config_dir = project_root / "configs" / "test-server"
         config_dir.mkdir()
         (config_dir / "config.yaml").write_text(

@@ -8,7 +8,6 @@ import pytest
 from autoboot.build import build_iso, render_installer_config
 from autoboot.models import AdminConfig, MachineConfig
 
-
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
 
 
@@ -58,7 +57,7 @@ class TestBuildIso:
         (scripts_dir / "build-iso.sh").write_text("#!/bin/bash\necho ok")
         output_dir = tmp_path / "output"
 
-        result = build_iso(
+        build_iso(
             config, source_iso, "ssh-ed25519 KEY", TEMPLATES_DIR,
             scripts_dir, output_dir,
         )

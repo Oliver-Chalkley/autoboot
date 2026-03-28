@@ -8,7 +8,6 @@ from autoboot.config import create_config, load_config
 from autoboot.distros import get_handler
 from autoboot.models import AdminConfig
 
-
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
 
 

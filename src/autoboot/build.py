@@ -2,7 +2,7 @@
 
 import subprocess
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from autoboot.config import load_config
@@ -11,6 +11,7 @@ from autoboot.iso import find_local_iso
 from autoboot.models import MachineConfig
 from autoboot.paths import (
     get_built_dir,
+    get_configs_dir,
     get_downloads_dir,
     get_scripts_dir,
     get_ssh_public_key,
@@ -33,7 +34,7 @@ def render_installer_config(
     return rendered
 
 
-def build_iso(
+def build_iso(  # noqa: PLR0913
     config: MachineConfig,
     source_iso: Path,
     ssh_key: str,
@@ -49,7 +50,7 @@ def build_iso(
     handler = get_handler(config.distro)
     rendered = render_installer_config(config, ssh_key, templates_dir)
 
-    date_str = datetime.now(tz=timezone.utc).strftime("%Y%m%d")
+    date_str = datetime.now(tz=UTC).strftime("%Y%m%d")
     output_iso = output_dir / f"{config.machine_name}-{date_str}.iso"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -96,8 +97,6 @@ def build_machine(
     Returns:
         Path to the built ISO.
     """
-    from autoboot.paths import get_configs_dir
-
     configs_dir = get_configs_dir(root)
     config_path = configs_dir / machine_name / "config.yaml"
     config = load_config(config_path)
@@ -117,4 +116,6 @@ def build_machine(
             )
             raise FileNotFoundError(msg)
 
-    return build_iso(config, source_iso, ssh_key, templates_dir, scripts_dir, output_dir)
+    return build_iso(
+        config, source_iso, ssh_key, templates_dir, scripts_dir, output_dir,
+    )

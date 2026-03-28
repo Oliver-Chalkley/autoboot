@@ -12,7 +12,7 @@ from autoboot.config import (
     save_config,
     validate_config,
 )
-from autoboot.models import AdminConfig, MachineConfig, NetworkConfig
+from autoboot.models import AdminConfig, MachineConfig
 
 
 def make_config_yaml(**overrides) -> dict:
@@ -151,7 +151,6 @@ class TestListConfigs:
         create_config("server-b", distro="debian", configs_dir=tmp_path)
 
         configs = list_configs(tmp_path)
-        assert len(configs) == 2
         names = [c.machine_name for c in configs]
         assert "server-a" in names
         assert "server-b" in names

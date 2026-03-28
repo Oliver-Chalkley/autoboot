@@ -35,7 +35,7 @@ def parse_checksum_file(content: str, iso_filename: str) -> str | None:
     """Extract the checksum for a specific file from SHA256SUMS content."""
     for line in content.strip().splitlines():
         parts = line.split()
-        if len(parts) >= 2:
+        if len(parts) >= 2:  # noqa: PLR2004
             checksum = parts[0]
             filename = parts[-1].lstrip("*")
             if filename == iso_filename:

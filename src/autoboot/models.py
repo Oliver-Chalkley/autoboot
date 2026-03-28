@@ -17,7 +17,9 @@ class NetworkConfig:
         """Return list of validation errors."""
         errors = []
         if self.type not in ("dhcp", "static"):
-            errors.append(f"Invalid network type: {self.type!r}. Must be 'dhcp' or 'static'.")
+            errors.append(
+                f"Invalid network type: {self.type!r}. Must be 'dhcp' or 'static'."
+            )
         if self.type == "static":
             if not self.address:
                 errors.append("Static network requires 'address'.")
@@ -37,7 +39,10 @@ class StorageConfig:
         """Return list of validation errors."""
         errors = []
         if self.layout not in ("lvm", "direct"):
-            errors.append(f"Invalid storage layout: {self.layout!r}. Must be 'lvm' or 'direct'.")
+            errors.append(
+                f"Invalid storage layout: {self.layout!r}."
+                " Must be 'lvm' or 'direct'."
+            )
         return errors
 
 
