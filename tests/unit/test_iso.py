@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 
 from autoboot.iso import (
+    check_download_prerequisites,
     download_iso,
     find_local_iso,
     iso_path_for_config,
@@ -99,6 +100,17 @@ class TestParseChecksumFile:
     def test_empty_content(self):
         result = parse_checksum_file("", "target.iso")
         assert result is None
+
+
+class TestCheckDownloadPrerequisites:
+    def test_passes_when_curl_available(self):
+        with patch("autoboot.iso.shutil.which", return_value="/usr/bin/curl"):
+            check_download_prerequisites()  # should not raise
+
+    def test_raises_when_curl_missing(self):
+        with patch("autoboot.iso.shutil.which", return_value=None):
+            with pytest.raises(RuntimeError, match="curl is not installed"):
+                check_download_prerequisites()
 
 
 class TestDownloadIso:

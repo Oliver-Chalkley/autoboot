@@ -1,9 +1,21 @@
 """USB flash orchestration."""
 
+import shutil
 import subprocess
 from pathlib import Path
 
 from autoboot.paths import get_built_dir, get_scripts_dir
+
+
+def check_flash_prerequisites() -> None:
+    """Check that flash prerequisites are installed."""
+    if shutil.which("dd") is None:
+        msg = (
+            "dd is not installed. It's needed to write ISOs to USB devices.\n"
+            "It should be part of coreutils — something is very wrong if "
+            "it's missing."
+        )
+        raise RuntimeError(msg)
 
 
 def find_latest_iso(machine_name: str, built_dir: Path) -> Path | None:
@@ -89,6 +101,8 @@ def flash_machine(
         root: Project root directory.
         skip_confirm: Skip the interactive confirmation prompt.
     """
+    check_flash_prerequisites()
+
     built_dir = get_built_dir(root)
     scripts_dir = get_scripts_dir(root)
 

@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from autoboot.build import build_iso, render_installer_config
+from autoboot.build import build_iso, check_build_prerequisites, render_installer_config
 from autoboot.models import AdminConfig, MachineConfig
 
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
@@ -20,6 +20,22 @@ def make_config(**overrides) -> MachineConfig:
     }
     defaults.update(overrides)
     return MachineConfig(**defaults)
+
+
+class TestCheckBuildPrerequisites:
+    def test_passes_when_xorriso_available(self):
+        with patch("autoboot.build.shutil.which", return_value="/usr/bin/xorriso"):
+            check_build_prerequisites()  # should not raise
+
+    def test_raises_when_xorriso_missing(self):
+        with patch("autoboot.build.shutil.which", return_value=None):
+            with pytest.raises(RuntimeError, match="xorriso is not installed"):
+                check_build_prerequisites()
+
+    def test_error_message_includes_install_instructions(self):
+        with patch("autoboot.build.shutil.which", return_value=None):
+            with pytest.raises(RuntimeError, match="sudo apt install xorriso"):
+                check_build_prerequisites()
 
 
 class TestRenderInstallerConfig:

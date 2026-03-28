@@ -5,7 +5,24 @@ from unittest.mock import patch
 
 import pytest
 
-from autoboot.flash import find_latest_iso, flash_iso, flash_machine, validate_device
+from autoboot.flash import (
+    check_flash_prerequisites,
+    find_latest_iso,
+    flash_iso,
+    flash_machine,
+    validate_device,
+)
+
+
+class TestCheckFlashPrerequisites:
+    def test_passes_when_dd_available(self):
+        with patch("autoboot.flash.shutil.which", return_value="/usr/bin/dd"):
+            check_flash_prerequisites()  # should not raise
+
+    def test_raises_when_dd_missing(self):
+        with patch("autoboot.flash.shutil.which", return_value=None):
+            with pytest.raises(RuntimeError, match="dd is not installed"):
+                check_flash_prerequisites()
 
 
 class TestFindLatestIso:
@@ -110,9 +127,12 @@ class TestFlashIso:
 
 
 class TestFlashMachine:
+    @patch("autoboot.flash.check_flash_prerequisites")
     @patch("autoboot.flash.subprocess.run")
     @patch("autoboot.flash.validate_device", return_value=[])
-    def test_finds_and_flashes(self, _mock_validate, mock_run, tmp_path: Path):
+    def test_finds_and_flashes(
+        self, _mock_validate, mock_run, _mock_prereq, tmp_path: Path,
+    ):
         # Set up project structure
         built_dir = tmp_path / "isos" / "built"
         built_dir.mkdir(parents=True)
@@ -127,7 +147,8 @@ class TestFlashMachine:
 
         assert mock_run.called
 
-    def test_raises_when_no_iso(self, tmp_path: Path):
+    @patch("autoboot.flash.check_flash_prerequisites")
+    def test_raises_when_no_iso(self, _mock_prereq, tmp_path: Path):
         built_dir = tmp_path / "isos" / "built"
         built_dir.mkdir(parents=True)
         scripts_dir = tmp_path / "scripts"

@@ -8,28 +8,45 @@ Write a simple YAML config per machine. Autoboot renders it into the correct dis
 
 When a USB stick is lost or a new machine needs provisioning, you need to recreate an exact bootable USB quickly. Manual installs are slow and error-prone. Autoboot makes it reproducible — configs are version-controlled, ISOs are rebuilt from official sources.
 
+## Prerequisites
+
+You need a few system packages alongside Python. Install what you're missing:
+
+**Debian / Ubuntu:**
+```bash
+sudo apt install xorriso curl
+```
+
+**Fedora / RHEL:**
+```bash
+sudo dnf install xorriso curl
+```
+
+**Arch:**
+```bash
+sudo pacman -S libisoburn curl
+```
+
+You also need [uv](https://docs.astral.sh/uv/) for Python dependency management.
+
 ## Quick Start
 
 ```bash
-# Install system dependencies
-./scripts/setup-dependencies.sh
-
-# Install Python dependencies
 uv sync
 
-# Add your SSH public key
-cp ~/.ssh/ansible.pub keys/ansible.pub
+# Add your SSH public key (the one your ansible controller will use)
+cp ~/.ssh/my_key.pub keys/ansible.pub
 
 # Create a machine config
 uv run autoboot new my-server --distro ubuntu
 
-# Edit the config
+# Edit the config — set hostname, password hash, network, etc.
 nano configs/my-server/config.yaml
 
-# Download the ISO
+# Download the official ISO
 uv run autoboot download my-server
 
-# Build the customized ISO
+# Build a customized ISO with your config baked in
 uv run autoboot build my-server
 
 # Flash to USB (requires root)
@@ -133,9 +150,40 @@ uv run pyright                    # Type check
 shellcheck scripts/*.sh           # Bash lint
 ```
 
-## Requirements
+## E2E Testing
 
-- Python 3.12+
-- `xorriso` — ISO manipulation
-- `curl` — ISO downloads
-- `dd` — USB writing (via sudo)
+The full end-to-end test boots a VM from a built ISO and validates the installation with Ansible. It takes ~15-30 minutes per distro.
+
+**Extra prerequisites:** `packer`, `qemu-system-x86_64`, `ansible`
+
+**Step 1 — Generate a test SSH keypair** (no passphrase):
+```bash
+ssh-keygen -t ed25519 -f keys/ansible -N ''
+```
+
+**Step 2 — Build a test ISO:**
+```bash
+uv run autoboot new e2e-test --distro ubuntu
+uv run autoboot download e2e-test
+uv run autoboot build e2e-test
+```
+
+**Step 3 — Initialize and run Packer:**
+```bash
+packer init tests/e2e/ubuntu-autoinstall.pkr.hcl
+packer build \
+    -var "iso_path=isos/built/e2e-test-$(date +%Y%m%d).iso" \
+    -var "ssh_private_key_file=keys/ansible" \
+    tests/e2e/ubuntu-autoinstall.pkr.hcl
+```
+
+Packer boots the ISO in a QEMU VM, waits for the install to finish and SSH to come up, then runs smoke tests and the Ansible validation playbook (`tests/e2e/validate-install.yml`).
+
+Replace `ubuntu-autoinstall.pkr.hcl` with `debian-preseed.pkr.hcl` to test Debian.
+
+**Step 4 — Or validate an existing machine** (skip Packer, run Ansible directly):
+```bash
+ansible-playbook -i 192.168.1.100, -u ansible \
+    --private-key keys/ansible \
+    tests/e2e/validate-install.yml
+```

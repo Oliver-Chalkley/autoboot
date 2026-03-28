@@ -9,6 +9,19 @@ from autoboot.distros import get_handler
 from autoboot.models import MachineConfig
 
 
+def check_download_prerequisites() -> None:
+    """Check that download prerequisites are installed."""
+    if shutil.which("curl") is None:
+        msg = (
+            "curl is not installed. It's needed to download ISO images.\n"
+            "Install it with:\n"
+            "  Debian/Ubuntu:  sudo apt install curl\n"
+            "  Fedora/RHEL:    sudo dnf install curl\n"
+            "  Arch:           sudo pacman -S curl"
+        )
+        raise RuntimeError(msg)
+
+
 def iso_path_for_config(config: MachineConfig, downloads_dir: Path) -> Path:
     """Return the expected ISO path for a machine config."""
     handler = get_handler(config.distro)
@@ -75,6 +88,8 @@ def download_iso(
             raise FileNotFoundError(msg)
         shutil.copy2(local_iso, dest)
         return dest
+
+    check_download_prerequisites()
 
     url = handler.iso_url(config.distro_version)
     _download_file(url, dest)

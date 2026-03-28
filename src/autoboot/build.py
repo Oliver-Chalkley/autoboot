@@ -1,5 +1,6 @@
 """ISO customization and build orchestration."""
 
+import shutil
 import subprocess
 import tempfile
 from datetime import UTC, datetime
@@ -17,6 +18,19 @@ from autoboot.paths import (
     get_ssh_public_key,
     get_templates_dir,
 )
+
+
+def check_build_prerequisites() -> None:
+    """Check that build prerequisites are installed."""
+    if shutil.which("xorriso") is None:
+        msg = (
+            "xorriso is not installed. It's needed to repack ISO images.\n"
+            "Install it with:\n"
+            "  Debian/Ubuntu:  sudo apt install xorriso\n"
+            "  Fedora/RHEL:    sudo dnf install xorriso\n"
+            "  Arch:           sudo pacman -S libisoburn"
+        )
+        raise RuntimeError(msg)
 
 
 def render_installer_config(
@@ -97,6 +111,8 @@ def build_machine(
     Returns:
         Path to the built ISO.
     """
+    check_build_prerequisites()
+
     configs_dir = get_configs_dir(root)
     config_path = configs_dir / machine_name / "config.yaml"
     config = load_config(config_path)
