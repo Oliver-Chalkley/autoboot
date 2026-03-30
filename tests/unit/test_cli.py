@@ -7,6 +7,7 @@ import pytest
 from click.testing import CliRunner
 
 from autoboot.cli import main
+from autoboot.test import VmTestResult
 
 
 @pytest.fixture()
@@ -185,6 +186,44 @@ class TestBuildCommand:
         )
         assert result.exit_code == 0
         assert mock_build.called
+
+
+class TestTestCommand:
+    @patch("autoboot.cli.verify_machine")
+    def test_test_passes(self, mock_verify, runner: CliRunner, project_root: Path):
+        mock_verify.return_value = VmTestResult(
+            passed=True, output="All checks passed", duration=120.0,
+        )
+
+        result = runner.invoke(
+            main, ["test", "web-01", "--root", str(project_root)],
+        )
+        assert result.exit_code == 0
+        assert "passed" in result.output.lower()
+        mock_verify.assert_called_once_with("web-01", root=project_root)
+
+    @patch("autoboot.cli.verify_machine")
+    def test_test_fails(self, mock_verify, runner: CliRunner, project_root: Path):
+        mock_verify.return_value = VmTestResult(
+            passed=False, output="Error", duration=60.0,
+        )
+
+        result = runner.invoke(
+            main, ["test", "web-01", "--root", str(project_root)],
+        )
+        assert result.exit_code != 0
+        assert "failed" in result.output.lower()
+
+    @patch("autoboot.cli.verify_machine")
+    def test_test_propagates_errors(
+        self, mock_verify, runner: CliRunner, project_root: Path,
+    ):
+        mock_verify.side_effect = FileNotFoundError("No built ISO found")
+
+        result = runner.invoke(
+            main, ["test", "web-01", "--root", str(project_root)],
+        )
+        assert result.exit_code != 0
 
 
 class TestFlashCommand:

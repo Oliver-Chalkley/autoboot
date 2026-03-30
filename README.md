@@ -49,6 +49,9 @@ uv run autoboot download my-server
 # Build a customized ISO with your config baked in
 uv run autoboot build my-server
 
+# (Optional) Test the ISO in a VM before flashing
+uv run autoboot test my-server
+
 # Flash to USB (requires root)
 sudo uv run autoboot flash my-server /dev/sdb
 ```
@@ -62,6 +65,7 @@ sudo uv run autoboot flash my-server /dev/sdb
 | `autoboot validate <name>` | Validate a machine config |
 | `autoboot download <name>` | Download the ISO for a machine |
 | `autoboot build <name>` | Build a customized ISO |
+| `autoboot test <name>` | Test a built ISO in a VM |
 | `autoboot flash <name> <device>` | Flash a built ISO to USB |
 
 ### Options
@@ -70,6 +74,7 @@ sudo uv run autoboot flash my-server /dev/sdb
 - `--root PATH` — Override project root directory
 - `download --force` — Re-download even if ISO exists
 - `download --local PATH` — Copy ISO from local path (e.g., NAS) instead of downloading
+- `test` — Requires `packer`, `qemu-system-x86_64`, KVM recommended (~10-20 min)
 - `flash --yes` — Skip confirmation prompt
 
 ## Machine Config

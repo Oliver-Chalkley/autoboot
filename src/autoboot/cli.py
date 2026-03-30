@@ -10,6 +10,7 @@ from autoboot.config import create_config, load_config, validate_config
 from autoboot.flash import flash_machine
 from autoboot.iso import download_iso
 from autoboot.paths import get_configs_dir, get_downloads_dir
+from autoboot.test import verify_machine
 
 
 @click.group()
@@ -105,6 +106,24 @@ def build(name: str, root: Path | None) -> None:
     """Build a customized ISO for a machine config."""
     result = build_machine(name, root=root)
     click.echo(f"Built ISO: {result}")
+
+
+@main.command("test")
+@click.argument("name")
+@click.option("--root", type=click.Path(exists=True, path_type=Path), default=None,
+              help="Project root directory.")
+def test_cmd(name: str, root: Path | None) -> None:
+    """Test a built ISO by booting it in a VM.
+
+    Boots the most recent built ISO in QEMU via Packer, then validates
+    the installation (ansible user, SSH key, sudo, packages).
+
+    Requires: packer, qemu-system-x86_64. KVM recommended.
+    """
+    result = verify_machine(name, root=root)
+    if not result.passed:
+        raise click.ClickException("VM test failed. See output above.")
+    click.echo(f"VM test passed in {result.duration:.0f}s.")
 
 
 @main.command()

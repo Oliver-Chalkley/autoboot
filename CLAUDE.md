@@ -45,6 +45,7 @@ uv run ruff format .               # Format
 uv run pyright                     # Type check
 shellcheck scripts/*.sh            # Bash lint
 uv run autoboot --help             # CLI help
+uv run autoboot test <name>       # VM test a built ISO (needs packer + qemu)
 ```
 
 ## Domain Notes
