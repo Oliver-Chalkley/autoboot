@@ -28,15 +28,18 @@ configs/               # Machine-specific YAML configurations
 keys/                  # SSH public key(s) for ansible user
 isos/                  # Downloaded and built ISOs (gitignored)
 tests/unit/            # pytest unit tests (auto-run via hooks)
-tests/integration/     # pytest integration tests
+tests/integration/     # pytest integration tests (config round-trip)
 tests/bats/            # BATS tests for bash scripts
-tests/e2e/             # Packer+QEMU E2E tests (manual only)
+tests/docker/          # Docker integration tests (ISO build with xorriso)
+tests/e2e/             # Packer+QEMU VM E2E tests
+tests/fixtures/        # Test SSH keys and configs (committed to repo)
 ```
 
 ## Common Commands
 ```bash
-uv run pytest tests/unit/          # Unit tests (fast)
-uv run pytest                      # All tests
+uv run pytest                      # Unit + integration tests (fast, <1s)
+uv run pytest -m docker            # Docker ISO build tests (~10s, needs Docker)
+uv run pytest -m vm -s             # VM E2E tests (~10min, needs Packer + QEMU)
 uv run ruff check .                # Lint
 uv run ruff format .               # Format
 uv run pyright                     # Type check
@@ -47,6 +50,6 @@ uv run autoboot --help             # CLI help
 ## Domain Notes
 - **autoinstall**: Ubuntu's unattended install mechanism via cloud-init. Config goes in `user-data` YAML.
 - **preseed**: Debian's unattended install mechanism via debconf. Config is a flat `preseed.cfg` file.
-- **xorriso**: Tool to extract and rebuild ISO images.
+- **xorriso**: Tool to modify ISO images in place, preserving boot records.
 - Machine configs are simplified YAML that Python renders into distro-specific format via Jinja2 templates.
 - The ansible user gets an SSH public key from `keys/ansible.pub` for passwordless remote access.

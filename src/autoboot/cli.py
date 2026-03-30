@@ -51,7 +51,7 @@ def new(name: str, distro: str, distro_version: str | None, root: Path | None) -
     if config_path.exists():
         raise click.ClickException(f"Config '{name}' already exists.")
 
-    create_config(name, distro, distro_version, configs_dir)
+    create_config(name, distro, distro_version or "", configs_dir)
     click.echo(f"Created config: {config_path}")
 
 

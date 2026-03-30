@@ -1,0 +1,19 @@
+machine_name: e2e-ubuntu
+distro: ubuntu
+distro_version: "24.04.3"
+hostname: e2e-ubuntu
+locale: en_US.UTF-8
+keyboard_layout: us
+timezone: UTC
+
+network:
+  type: dhcp
+
+storage:
+  layout: lvm
+  match: largest
+
+admin:
+  username: admin
+  password_hash: "$6$rounds=4096$autoboottest$KJ5RhXMZv8jDQ5kF.6G3l0e5J8HfGZ2dK1x4v8N9mK7ZhJ3aB2c1D0e9F8g7H6i5J4k3L2m1N0o9P8q7R6s5T4u3V2w1X0y"
+  real_name: Administrator

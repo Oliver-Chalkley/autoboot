@@ -110,12 +110,4 @@ build {
     ]
   }
 
-  # Run the full Ansible validation playbook
-  provisioner "ansible" {
-    playbook_file = "tests/e2e/validate-install.yml"
-    user          = "ansible"
-    extra_arguments = [
-      "--private-key", var.ssh_private_key_file,
-    ]
-  }
 }

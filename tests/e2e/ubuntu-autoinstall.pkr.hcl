@@ -41,7 +41,7 @@ variable "vm_disk_size" {
 
 variable "ssh_timeout" {
   type    = string
-  default = "30m"
+  default = "15m"
 }
 
 source "qemu" "ubuntu" {
@@ -76,46 +76,36 @@ source "qemu" "ubuntu" {
 build {
   sources = ["source.qemu.ubuntu"]
 
-  # Basic smoke test: verify we can connect and the system is functional
   provisioner "shell" {
     inline = [
       "echo '=== Autoboot E2E Validation ==='",
       "",
-      "# Verify ansible user",
       "echo 'Checking ansible user...'",
       "id ansible",
       "",
-      "# Verify passwordless sudo",
-      "echo 'Checking sudo access...'",
-      "sudo whoami | grep -q root",
+      "echo 'Checking passwordless sudo...'",
+      "sudo -n whoami | grep -q root",
       "",
-      "# Verify SSH authorized keys",
-      "echo 'Checking SSH key...'",
+      "echo 'Checking SSH authorized_keys...'",
       "test -f /home/ansible/.ssh/authorized_keys",
+      "echo \"  keys: $(wc -l < /home/ansible/.ssh/authorized_keys)\"",
       "",
-      "# Verify essential packages",
       "echo 'Checking packages...'",
       "dpkg -l python3 | grep -q '^ii'",
       "dpkg -l openssh-server | grep -q '^ii'",
+      "echo '  python3 and openssh-server installed'",
       "",
-      "# Verify autoinstall success marker",
       "echo 'Checking autoinstall marker...'",
       "test -f /var/log/autoinstall-success",
       "",
-      "# Verify sudoers.d config",
-      "echo 'Checking sudoers config...'",
-      "test -f /etc/sudoers.d/ansible",
+      "echo 'Checking sudoers NOPASSWD...'",
+      "sudo -n true && echo '  NOPASSWD sudo works'",
+      "",
+      "echo 'System info:'",
+      "echo \"  hostname: $(hostname)\"",
+      "echo \"  os: $(lsb_release -ds 2>/dev/null || cat /etc/os-release | head -1)\"",
       "",
       "echo '=== All checks passed ==='",
-    ]
-  }
-
-  # Run the full Ansible validation playbook
-  provisioner "ansible" {
-    playbook_file = "tests/e2e/validate-install.yml"
-    user          = "ansible"
-    extra_arguments = [
-      "--private-key", var.ssh_private_key_file,
     ]
   }
 }

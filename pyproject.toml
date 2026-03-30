@@ -44,3 +44,8 @@ venv = ".venv"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+addopts = "-m 'not docker and not vm'"
+markers = [
+    "docker: Docker integration tests (require Docker)",
+    "vm: VM end-to-end tests (require Packer + QEMU)",
+]

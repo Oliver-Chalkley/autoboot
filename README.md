@@ -137,53 +137,64 @@ scripts/               # Bash scripts (build-iso.sh, flash-usb.sh)
 configs/               # Machine configs (version-controlled)
 keys/                  # SSH public key for ansible user
 isos/                  # Downloaded and built ISOs (gitignored)
+tests/
+  unit/                # Fast pytest tests (<1s)
+  docker/              # Docker ISO build tests (~10s)
+  e2e/                 # VM E2E tests via Packer+QEMU (~10min)
+  fixtures/            # Test SSH keys and configs (committed)
+  integration/         # Config round-trip tests
+  bats/                # BATS tests for bash scripts
 ```
 
 ## Development
 
 ```bash
 uv sync                           # Install dependencies
-uv run pytest tests/unit/         # Unit tests (fast, ~0.3s)
-uv run pytest                     # All tests
 uv run ruff check .               # Lint
 uv run pyright                    # Type check
 shellcheck scripts/*.sh           # Bash lint
 ```
 
-## E2E Testing
+## Testing
 
-The full end-to-end test boots a VM from a built ISO and validates the installation with Ansible. It takes ~15-30 minutes per distro.
+Three tiers, from fast to thorough:
 
-**Extra prerequisites:** `packer`, `qemu-system-x86_64`, `ansible`
+### Unit + integration tests (fast, <1s)
 
-**Step 1 — Generate a test SSH keypair** (no passphrase):
 ```bash
-ssh-keygen -t ed25519 -f keys/ansible -N ''
+uv run pytest
 ```
 
-**Step 2 — Build a test ISO:**
+Runs 151 tests covering config validation, template rendering, CLI parsing, and more. No external tools needed beyond Python.
+
+### Docker integration tests (~10s)
+
 ```bash
-uv run autoboot new e2e-test --distro ubuntu
-uv run autoboot download e2e-test
-uv run autoboot build e2e-test
+uv run pytest -m docker
 ```
 
-**Step 3 — Initialize and run Packer:**
+Builds real ISOs inside Docker (with xorriso), using small fake source ISOs. Verifies config files are injected, GRUB is modified, SSH keys are present. **Requires:** Docker.
+
+### VM end-to-end tests (~10 min)
+
 ```bash
-packer init tests/e2e/ubuntu-autoinstall.pkr.hcl
-packer build \
-    -var "iso_path=isos/built/e2e-test-$(date +%Y%m%d).iso" \
-    -var "ssh_private_key_file=keys/ansible" \
-    tests/e2e/ubuntu-autoinstall.pkr.hcl
+uv run pytest -m vm -s
 ```
 
-Packer boots the ISO in a QEMU VM, waits for the install to finish and SSH to come up, then runs smoke tests and the Ansible validation playbook (`tests/e2e/validate-install.yml`).
+Downloads a real Ubuntu 24.04.3 ISO, builds a customized ISO, boots it in a QEMU VM via Packer, and validates the full installation (ansible user, SSH key, sudo, packages). **Requires:** `packer`, `qemu-system-x86_64`, `xorriso`, `curl`, KVM, ~3GB disk.
 
-Replace `ubuntu-autoinstall.pkr.hcl` with `debian-preseed.pkr.hcl` to test Debian.
+Test fixtures (SSH keypair, Ubuntu config) are committed at `tests/fixtures/` so everything runs straight from clone — no manual setup needed.
 
-**Step 4 — Or validate an existing machine** (skip Packer, run Ansible directly):
+Use `-s` to see live progress. The output includes a VNC command to watch the install:
+```
+  [E2E] To watch the install: vncviewer 127.0.0.1::5941
+```
+
+### Validate an existing machine
+
+Run the Ansible playbook directly against a machine you've already installed:
 ```bash
 ansible-playbook -i 192.168.1.100, -u ansible \
-    --private-key keys/ansible \
+    --private-key tests/fixtures/keys/ansible \
     tests/e2e/validate-install.yml
 ```

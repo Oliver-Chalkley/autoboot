@@ -81,45 +81,57 @@ fi
 BUILD_DIR=$(mktemp -d)
 trap 'rm -rf "$BUILD_DIR"' EXIT
 
-info "Extracting source ISO..."
-xorriso -osirrox on -indev "$SOURCE_ISO" -extract / "$BUILD_DIR/iso" 2>/dev/null
-
-info "Making ISO writable..."
-chmod -R u+w "$BUILD_DIR/iso"
-
-info "Injecting configuration files..."
-mkdir -p "$BUILD_DIR/iso/$INJECTION_PATH"
-cp -r "$CONFIG_DIR"/* "$BUILD_DIR/iso/$INJECTION_PATH/"
-
-info "Modifying GRUB configuration..."
-if [[ -f "$BUILD_DIR/iso/boot/grub/grub.cfg" ]]; then
-    sed -i "$GRUB_SED" "$BUILD_DIR/iso/boot/grub/grub.cfg"
-else
-    warn "GRUB config not found at boot/grub/grub.cfg — skipping GRUB modification"
-fi
-
-info "Rebuilding ISO..."
 mkdir -p "$(dirname "$OUTPUT_ISO")"
 
-# Build with both BIOS and UEFI boot support
-xorriso -as mkisofs \
-    -r -V "AUTOBOOT" \
-    -o "$OUTPUT_ISO" \
-    -J -joliet-long \
-    -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin 2>/dev/null || \
-xorriso -as mkisofs \
-    -r -V "AUTOBOOT" \
-    -o "$OUTPUT_ISO" \
-    -J -joliet-long \
-    -partition_offset 16 \
-    -append_partition 2 0xef "$BUILD_DIR/iso/boot/grub/efi.img" 2>/dev/null || true
+# --- Modify ISO in place (preserves boot records) ---
+#
+# Instead of extracting, rebuilding, and losing boot records, we:
+# 1. Copy the source ISO
+# 2. Extract grub.cfg, modify it with sed
+# 3. Use xorriso to inject config files and modified grub.cfg
+#    with -boot_image any replay to preserve all boot records
 
-# Primary build command
-xorriso -as mkisofs \
-    -r -V "AUTOBOOT" \
-    -o "$OUTPUT_ISO" \
-    -J -joliet-long \
-    "$BUILD_DIR/iso"
+info "Copying source ISO..."
+cp "$SOURCE_ISO" "$OUTPUT_ISO"
+
+# Extract and modify grub.cfg
+info "Modifying GRUB configuration..."
+GRUB_MODIFIED="$BUILD_DIR/grub.cfg"
+if xorriso -osirrox on -indev "$SOURCE_ISO" \
+    -extract /boot/grub/grub.cfg "$GRUB_MODIFIED" 2>/dev/null; then
+    sed -i "$GRUB_SED" "$GRUB_MODIFIED"
+else
+    warn "GRUB config not found in source ISO — skipping GRUB modification"
+    GRUB_MODIFIED=""
+fi
+
+# Build xorriso command to inject files
+info "Injecting configuration files..."
+XORRISO_CMD=(
+    xorriso -dev "$OUTPUT_ISO"
+    -overwrite on
+)
+
+# Inject config files into the ISO
+if [[ "$INJECTION_PATH" == "." ]]; then
+    # Map individual files to ISO root
+    for f in "$CONFIG_DIR"/*; do
+        XORRISO_CMD+=(-map "$f" "/$(basename "$f")")
+    done
+else
+    XORRISO_CMD+=(-map "$CONFIG_DIR" "/$INJECTION_PATH")
+fi
+
+# Inject modified grub.cfg
+if [[ -n "$GRUB_MODIFIED" ]]; then
+    XORRISO_CMD+=(-map "$GRUB_MODIFIED" "/boot/grub/grub.cfg")
+fi
+
+# Preserve boot records
+XORRISO_CMD+=(-boot_image any replay -end)
+
+info "Rebuilding ISO with boot records preserved..."
+"${XORRISO_CMD[@]}" 2>/dev/null
 
 info "Built ISO: $OUTPUT_ISO"
 info "Size: $(du -h "$OUTPUT_ISO" | cut -f1)"
