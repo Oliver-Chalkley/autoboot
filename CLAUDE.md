@@ -22,10 +22,11 @@ Autoboot creates bootable USBs that auto-install Linux with an ansible user and 
 ```
 src/autoboot/          # Python source code
   distros/             # Distro handler implementations
+  test.py              # VM test orchestration (Packer+QEMU)
 templates/             # Jinja2 templates for installer configs
 scripts/               # Bash scripts for ISO/USB operations
 configs/               # Machine-specific YAML configurations
-keys/                  # SSH public key(s) for ansible user
+keys/                  # SSH public key(s) + private key for ansible user
 isos/                  # Downloaded and built ISOs (gitignored)
 tests/unit/            # pytest unit tests (auto-run via hooks)
 tests/integration/     # pytest integration tests (config round-trip)

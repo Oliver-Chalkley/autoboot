@@ -74,7 +74,7 @@ sudo uv run autoboot flash my-server /dev/sdb
 - `--root PATH` — Override project root directory
 - `download --force` — Re-download even if ISO exists
 - `download --local PATH` — Copy ISO from local path (e.g., NAS) instead of downloading
-- `test` — Requires `packer`, `qemu-system-x86_64`, KVM recommended (~10-20 min)
+- `test` — Boot built ISO in a VM and validate install. Requires `packer`, `qemu-system-x86_64`. KVM recommended (~10-20 min)
 - `flash --yes` — Skip confirmation prompt
 
 ## Machine Config
@@ -135,6 +135,7 @@ src/autoboot/          # Python package
   config.py            # Config CRUD + validation
   iso.py               # ISO download + checksum verification
   build.py             # ISO build orchestration
+  test.py              # VM test orchestration (Packer+QEMU)
   flash.py             # USB flash orchestration
   distros/             # Distro handler implementations
 templates/             # Jinja2 templates for installer configs
@@ -170,7 +171,7 @@ Three tiers, from fast to thorough:
 uv run pytest
 ```
 
-Runs 151 tests covering config validation, template rendering, CLI parsing, and more. No external tools needed beyond Python.
+Runs 169 tests covering config validation, template rendering, CLI parsing, and more. No external tools needed beyond Python.
 
 ### Docker integration tests (~10s)
 
@@ -194,6 +195,18 @@ Use `-s` to see live progress. The output includes a VNC command to watch the in
 ```
   [E2E] To watch the install: vncviewer 127.0.0.1::5941
 ```
+
+### Test before flashing
+
+After building an ISO, you can verify it works by booting it in a VM before committing to a real USB:
+
+```bash
+uv run autoboot test my-server
+```
+
+This boots the built ISO in QEMU via Packer, waits for the install to complete, then connects via SSH and validates: ansible user exists, SSH key works, passwordless sudo, python3 and openssh-server installed. Takes ~10-20 minutes with KVM. Progress is streamed to stdout, including a VNC command to watch the install live.
+
+**Requires:** `packer`, `qemu-system-x86_64`, KVM recommended.
 
 ### Validate an existing machine
 
