@@ -16,7 +16,7 @@ Autoboot creates bootable USBs that auto-install Linux with an ansible user and 
 - Python: config management, validation, CLI (Click), template rendering (Jinja2)
 - Bash: ISO manipulation (xorriso), USB writing (dd)
 
-**Distro support**: Protocol-based handlers in `src/autoboot/distros/`. Currently Ubuntu (autoinstall) and Debian (preseed).
+**Distro support**: Protocol-based handlers in `src/autoboot/distros/`. Currently Ubuntu (autoinstall), Debian (preseed), and Fedora (kickstart).
 
 ## Project Structure
 ```
@@ -52,6 +52,7 @@ uv run autoboot test <name>       # VM test a built ISO (needs packer + qemu)
 ## Domain Notes
 - **autoinstall**: Ubuntu's unattended install mechanism via cloud-init. Config goes in `user-data` YAML.
 - **preseed**: Debian's unattended install mechanism via debconf. Config is a flat `preseed.cfg` file.
+- **kickstart**: Fedora/RHEL's unattended install mechanism. Config is a `kickstart.ks` file with directives, `%packages`, and `%post` sections.
 - **xorriso**: Tool to modify ISO images in place, preserving boot records.
 - Machine configs are simplified YAML that Python renders into distro-specific format via Jinja2 templates.
 - The ansible user gets an SSH public key from `keys/ansible.pub` for passwordless remote access.

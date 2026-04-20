@@ -54,6 +54,13 @@ class TestRenderInstallerConfig:
         )
         assert "preseed.cfg" in rendered
 
+    def test_renders_fedora_config(self):
+        config = make_config(distro="fedora", distro_version="43")
+        rendered = render_installer_config(
+            config, "ssh-ed25519 KEY", TEMPLATES_DIR
+        )
+        assert "kickstart.ks" in rendered
+
     def test_invalid_render_raises(self):
         config = make_config()
         with patch("autoboot.distros.ubuntu.UbuntuHandler.render_config") as mock:

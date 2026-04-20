@@ -63,9 +63,18 @@ class TestGetPackerTemplate:
         result = get_packer_template("debian", tmp_path)
         assert result == template
 
+    def test_fedora_template(self, tmp_path: Path):
+        e2e_dir = tmp_path / "tests" / "e2e"
+        e2e_dir.mkdir(parents=True)
+        template = e2e_dir / "fedora-kickstart.pkr.hcl"
+        template.touch()
+
+        result = get_packer_template("fedora", tmp_path)
+        assert result == template
+
     def test_unknown_distro(self, tmp_path: Path):
         with pytest.raises(ValueError, match="No test template"):
-            get_packer_template("fedora", tmp_path)
+            get_packer_template("arch", tmp_path)
 
     def test_template_not_found(self, tmp_path: Path):
         with pytest.raises(FileNotFoundError, match="not found"):

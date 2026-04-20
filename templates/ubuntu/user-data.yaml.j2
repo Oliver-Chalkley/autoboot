@@ -47,9 +47,6 @@ autoinstall:
     - python3
     - python3-apt
     - openssh-server
-{% for pkg in config.packages %}
-    - {{ pkg }}
-{% endfor %}
   user-data:
     timezone: {{ config.timezone }}
     users:
@@ -61,6 +58,15 @@ autoinstall:
         sudo: ALL=(ALL) NOPASSWD:ALL
         ssh_authorized_keys:
           - {{ ssh_key }}
+    package_update: true
+    packages:
+{% for pkg in config.packages %}
+      - {{ pkg }}
+{% endfor %}
+    runcmd:
+      - "ssh-keyscan github.com > /home/ansible/.ssh/known_hosts 2>/dev/null || true"
+      - "chown ansible:ansible /home/ansible/.ssh/known_hosts"
+      - "chmod 600 /home/ansible/.ssh/known_hosts"
   late-commands:
     - echo 'ansible ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/ansible
     - chmod 440 /target/etc/sudoers.d/ansible

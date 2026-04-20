@@ -97,17 +97,29 @@ class TestUbuntuHandler:
         assert "ansible" in user_data
         assert "NOPASSWD:ALL" in user_data
 
-    def test_render_config_contains_packages(self):
-        config = make_config(packages=["vim", "htop"])
+    def test_render_config_user_packages_install_on_first_boot(self):
+        # User-supplied packages go into cloud-init's first-boot package list,
+        # NOT autoinstall.packages. Reason: packages like `ansible` live in
+        # the universe repo, which isn't enabled during the installer phase —
+        # `apt install ansible` fails with exit 100. By first boot the target
+        # has full repos enabled, so any apt-available package works.
+        config = make_config(packages=["vim", "ansible"])
         rendered = self.handler.render_config(
             config, "ssh-ed25519 KEY", self.templates_dir
         )
-
         parsed = yaml.safe_load(rendered["nocloud/user-data"])
-        packages = parsed["autoinstall"]["packages"]
-        assert "vim" in packages
-        assert "htop" in packages
-        assert "python3" in packages
+
+        first_boot_packages = parsed["autoinstall"]["user-data"].get("packages", [])
+        assert "vim" in first_boot_packages
+        assert "ansible" in first_boot_packages
+
+        installer_packages = parsed["autoinstall"]["packages"]
+        assert "python3" in installer_packages
+        assert "openssh-server" in installer_packages
+        assert "ansible" not in installer_packages, (
+            "user packages must not go into autoinstall.packages — universe "
+            "packages (like ansible) fail to install during the installer phase"
+        )
 
     def test_render_config_dhcp(self):
         config = make_config()
@@ -169,3 +181,28 @@ class TestUbuntuHandler:
             {"nocloud/user-data": "foo: bar"}
         )
         assert any("autoinstall" in e for e in errors)
+
+    def test_render_config_seeds_github_known_hosts_on_first_boot(self):
+        # Must run on first boot (cloud-init runcmd), NOT during install
+        # (late-commands), because the ansible user doesn't exist until first
+        # boot — late-commands hit "no such file/user" and abort the install.
+        config = make_config()
+        rendered = self.handler.render_config(
+            config, "ssh-ed25519 KEY", self.templates_dir
+        )
+        parsed = yaml.safe_load(rendered["nocloud/user-data"])
+
+        runcmd = parsed["autoinstall"]["user-data"].get("runcmd", [])
+        runcmd_joined = " ".join(
+            c if isinstance(c, str) else " ".join(c) for c in runcmd
+        )
+        assert "ssh-keyscan" in runcmd_joined
+        assert "github.com" in runcmd_joined
+        assert "/home/ansible/.ssh/known_hosts" in runcmd_joined
+
+        late = parsed["autoinstall"].get("late-commands", [])
+        late_joined = " ".join(late)
+        assert "ssh-keyscan" not in late_joined, (
+            "known_hosts seeding must not be in late-commands — the ansible "
+            "user doesn't exist during the installer phase"
+        )

@@ -24,8 +24,12 @@ def docker_image():
     """Build the Docker test image (once per session)."""
     subprocess.run(
         [
-            "docker", "build", "-t", DOCKER_IMAGE,
-            "-f", str(PROJECT_ROOT / "tests" / "docker" / "Dockerfile"),
+            "docker",
+            "build",
+            "-t",
+            DOCKER_IMAGE,
+            "-f",
+            str(PROJECT_ROOT / "tests" / "docker" / "Dockerfile"),
             str(PROJECT_ROOT),
         ],
         check=True,
@@ -81,12 +85,14 @@ def _build_and_extract(
             "    linux /casper/vmlinuz --- quiet\n"
             "}\n"
         )
-    else:
+    elif distro == "fedora":
         grub_content = (
-            'menuentry "Install" {\n'
-            "    linux /install --- quiet\n"
+            'menuentry "Install Fedora" {\n'
+            "    linuxefi /images/pxeboot/vmlinuz quiet\n"
             "}\n"
         )
+    else:
+        grub_content = 'menuentry "Install" {\n    linux /install --- quiet\n}\n'
     (iso_root / "grub.cfg").write_text(grub_content)
 
     # Determine the config dir to pass to build-iso.sh
@@ -117,11 +123,17 @@ def _build_and_extract(
 
     result = subprocess.run(
         [
-            "docker", "run", "--rm",
-            "-v", f"{work_dir}:/work",
-            "-v", f"{PROJECT_ROOT}/scripts:/work/scripts:ro",
+            "docker",
+            "run",
+            "--rm",
+            "-v",
+            f"{work_dir}:/work",
+            "-v",
+            f"{PROJECT_ROOT}/scripts:/work/scripts:ro",
             docker_image,
-            "bash", "-c", script,
+            "bash",
+            "-c",
+            script,
         ],
         capture_output=True,
         text=True,
@@ -151,3 +163,9 @@ def ubuntu_iso_contents(docker_image, tmp_path_factory):
 def debian_iso_contents(docker_image, tmp_path_factory):
     """Build Debian ISO in Docker and return path to extracted contents."""
     return _build_and_extract(docker_image, tmp_path_factory, "debian", "12.9")
+
+
+@pytest.fixture(scope="module")
+def fedora_iso_contents(docker_image, tmp_path_factory):
+    """Build Fedora ISO in Docker and return path to extracted contents."""
+    return _build_and_extract(docker_image, tmp_path_factory, "fedora", "43")

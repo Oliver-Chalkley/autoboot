@@ -2,11 +2,13 @@
 
 from autoboot.distros.base import DistroHandler
 from autoboot.distros.debian import DebianHandler
+from autoboot.distros.fedora import FedoraHandler
 from autoboot.distros.ubuntu import UbuntuHandler
 
 _HANDLERS: dict[str, type[DistroHandler]] = {
     "ubuntu": UbuntuHandler,
     "debian": DebianHandler,
+    "fedora": FedoraHandler,
 }
 
 

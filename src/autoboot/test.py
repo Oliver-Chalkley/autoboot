@@ -20,6 +20,7 @@ from autoboot.paths import (
 _PACKER_TEMPLATES: dict[str, str] = {
     "ubuntu": "ubuntu-autoinstall.pkr.hcl",
     "debian": "debian-preseed.pkr.hcl",
+    "fedora": "fedora-kickstart.pkr.hcl",
 }
 
 

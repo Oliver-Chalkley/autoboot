@@ -16,9 +16,7 @@ class TestUbuntuRoundTrip:
         config_path = create_config("web-01", distro="ubuntu", configs_dir=tmp_path)
         config = load_config(config_path)
 
-        config.admin = AdminConfig(
-            username="admin", password_hash="$6$roundtriphash"
-        )
+        config.admin = AdminConfig(username="admin", password_hash="$6$roundtriphash")
 
         handler = get_handler("ubuntu")
         ssh_key = "ssh-ed25519 ROUNDTRIPKEY ansible@test"
@@ -56,9 +54,7 @@ class TestDebianRoundTrip:
         config_path = create_config("mail-01", distro="debian", configs_dir=tmp_path)
         config = load_config(config_path)
 
-        config.admin = AdminConfig(
-            username="admin", password_hash="$6$roundtriphash"
-        )
+        config.admin = AdminConfig(username="admin", password_hash="$6$roundtriphash")
 
         handler = get_handler("debian")
         ssh_key = "ssh-ed25519 ROUNDTRIPKEY ansible@test"
@@ -71,3 +67,23 @@ class TestDebianRoundTrip:
         assert "mail-01" in preseed
         assert "ROUNDTRIPKEY" in preseed
         assert "ansible" in preseed
+
+
+class TestFedoraRoundTrip:
+    def test_create_load_render_validate(self, tmp_path: Path):
+        config_path = create_config("app-01", distro="fedora", configs_dir=tmp_path)
+        config = load_config(config_path)
+
+        config.admin = AdminConfig(username="admin", password_hash="$6$roundtriphash")
+
+        handler = get_handler("fedora")
+        ssh_key = "ssh-ed25519 ROUNDTRIPKEY ansible@test"
+        rendered = handler.render_config(config, ssh_key, TEMPLATES_DIR)
+
+        errors = handler.validate_rendered_config(rendered)
+        assert errors == [], f"Validation errors: {errors}"
+
+        kickstart = rendered["kickstart.ks"]
+        assert "app-01" in kickstart
+        assert "ROUNDTRIPKEY" in kickstart
+        assert "ansible" in kickstart

@@ -1,0 +1,26 @@
+machine_name: betty
+distro: ubuntu
+distro_version: 24.04.3
+hostname: betty
+locale: en_US.UTF-8
+keyboard_layout: gb
+timezone: Europe/London
+network:
+  type: static
+  interface: en*
+  address: 10.46.172.108/24
+  gateway: 10.46.172.1
+  dns:
+    - 1.1.1.1
+    - 8.8.8.8
+storage:
+  layout: lvm
+  match: largest
+admin:
+  username: ochalkley-admin
+  password_hash: "$6$P.D4aAjU6LkXMZj3$lv0euA5FOP2PsSIiml9npafT.7/5C5XSfs/wJOHdH6xpPR1i84FT6NfWFkXkXQC5Ka1.L607jGkk9K.Pzu3y8."
+  real_name: Oliver Chalkley
+packages:
+  - git
+  - ansible
+extra_late_commands: []

@@ -56,6 +56,8 @@ uv run autoboot test my-server
 sudo uv run autoboot flash my-server /dev/sdb
 ```
 
+For step-by-step walkthroughs (recreating a USB, switching distros, static IPs, managing a fleet), see the [Tutorials](docs/tutorials.md).
+
 ## CLI Commands
 
 | Command | Description |
@@ -114,6 +116,7 @@ The simple YAML is rendered into distro-specific format (autoinstall YAML for Ub
 |--------|-----------|----------|
 | Ubuntu | autoinstall (cloud-init) | 24.04, 24.04.1, 24.04.2, 24.04.3 |
 | Debian | preseed (debconf) | 12.8, 12.9, 12.10 |
+| Fedora | kickstart | 42, 43 |
 
 Adding a new distro requires implementing a handler class in `src/autoboot/distros/` and a Jinja2 template in `templates/`.
 
@@ -171,7 +174,7 @@ Three tiers, from fast to thorough:
 uv run pytest
 ```
 
-Runs 169 tests covering config validation, template rendering, CLI parsing, and more. No external tools needed beyond Python.
+Runs 192 tests covering config validation, template rendering, CLI parsing, and more. No external tools needed beyond Python.
 
 ### Docker integration tests (~10s)
 

@@ -64,6 +64,39 @@ class TestUbuntuIsoBuild:
         assert "ds=nocloud" in grub_cfg
 
 
+class TestFedoraIsoBuild:
+    """Verify Fedora ISO build injects kickstart correctly."""
+
+    def test_iso_was_produced(self, fedora_iso_contents: Path):
+        built = fedora_iso_contents.parent / "built.iso"
+        assert built.exists()
+        assert built.stat().st_size > 0
+
+    def test_kickstart_injected(self, fedora_iso_contents: Path):
+        assert (fedora_iso_contents / "kickstart.ks").exists()
+
+    def test_kickstart_has_directives(self, fedora_iso_contents: Path):
+        kickstart = (fedora_iso_contents / "kickstart.ks").read_text()
+        assert "%packages" in kickstart
+
+    def test_kickstart_configures_user(self, fedora_iso_contents: Path):
+        kickstart = (fedora_iso_contents / "kickstart.ks").read_text()
+        assert "user --name=" in kickstart
+
+    def test_ssh_key_present_in_kickstart(self, fedora_iso_contents: Path):
+        kickstart = (fedora_iso_contents / "kickstart.ks").read_text()
+        test_key = (FIXTURES_DIR / "keys" / "ansible.pub").read_text().strip()
+        assert test_key in kickstart
+
+    def test_hostname_in_kickstart(self, fedora_iso_contents: Path):
+        kickstart = (fedora_iso_contents / "kickstart.ks").read_text()
+        assert "test-fedora" in kickstart
+
+    def test_grub_has_kickstart_params(self, fedora_iso_contents: Path):
+        grub_cfg = (fedora_iso_contents / "boot" / "grub" / "grub.cfg").read_text()
+        assert "inst.ks" in grub_cfg
+
+
 class TestDebianIsoBuild:
     """Verify Debian ISO build injects preseed correctly."""
 
